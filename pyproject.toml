@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "yaml-macros"
+version = "0.0.1"
+description = "Library for adding macro like functionality to YAML."
+homepage = "https://github.com/gwww/yaml-macros"
+authors = ["Glenn Waters <gwwaters+yaml-macros@gmail.com>"]
+readme = "README.md"
+license = "MIT"
+classifiers = [
+  'Development Status :: 4 - Beta',
+  'Intended Audience :: Developers',
+]
+include = ["CHANGELOG.md", "bin/**/*"]
+exclude = ["test"]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+PyYAML = "^5.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.4"
+mock = "^4.0"
+pytest-mock = "^3.1"
+colorlog = "^4.0"
+
+[build-system]
+requires = ["poetry>=1.0"]
+build-backend = "poetry.masonry.api"
