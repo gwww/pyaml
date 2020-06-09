@@ -42,11 +42,7 @@ def test_eval_multiple_line_string():
 
 def test_import_does_not_exist():
     with pytest.raises(ModuleNotFoundError):
-        parsed = yaml_macros(
-            (
-                "@@import some_silly_thing_that_does_not_exist@@\n"
-            )
-        )
+        parsed = yaml_macros(("@@import some_silly_thing_that_does_not_exist@@\n"))
 
 
 def test_exec_function():
@@ -64,21 +60,21 @@ def test_exec_function():
 
 
 def test_include():
-    with mock.patch('builtins.open', mock.mock_open(read_data="foo: Hello world!")):
+    with mock.patch("builtins.open", mock.mock_open(read_data="foo: Hello world!")):
         parsed = yaml_macros(
             (
                 "stuff:\n"
-                "  @@include include.yaml@@\n"
+                "  - @@include include.yaml@@\n"
+                "  - @@include include.yaml@@\n"
             )
         )
-    assert yaml.safe_load(parsed) == {"stuff": {"foo": "Hello world!"}}
+    assert yaml.safe_load(parsed) == {
+        "stuff": [{"foo": "Hello world!"}, {"foo": "Hello world!"}]
+    }
 
 
 def test_include_file_does_not_exist():
     with pytest.raises(FileNotFoundError):
         parsed = yaml_macros(
-            (
-                "stuff:\n"
-                "  @@include some_name_that_does_not_exist.oh_gosh@@\n"
-            )
+            ("stuff:\n" "  @@include some_name_that_does_not_exist.oh_gosh@@\n")
         )

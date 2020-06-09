@@ -29,12 +29,11 @@ def _process_file(io_handle, reformat):
     if reformat:
         data = yaml.safe_load(lines)
         return yaml.dump(data)
-
     return lines
 
 
-def _read_lines(io_handle, indent_str=""):
-    return "".join([_parse_line(f"{indent_str}{line}") for line in io_handle])
+def _read_lines(io_handle):
+    return "".join([_parse_line(line) for line in io_handle])
 
 
 _re_exec_block = re.compile(r"^@@\s*$")
@@ -95,11 +94,14 @@ def _parse_include(line):
     lines = None
     match = _re_include.match(line)
     if match:
-        indent_str = " " * len(match.group(1))
+        indent_str = "\n" + " " * len(match.group(1))
         filename = match.group(2)
-        with open(filename) as io_handle:
-            lines = _read_lines(io_handle, indent_str)
+        with open(filename) as file:
+            include_str = match.group(1) + file.read().replace("\n", indent_str) + "\n"
+        with io.StringIO(include_str) as io_handle:
+            lines = _read_lines(io_handle)
     return lines
+
 
 def _parse_eval(line):
     match = _re_eval.match(line)
@@ -109,8 +111,8 @@ def _parse_eval(line):
     evaled = eval(match.group(2), _macro_globals)
     if isinstance(evaled, str):
         if "\n" in evaled:
-            prefix_str = "\n" + " " * len(match.group(1))
-            evaled = re.sub(r"\n", prefix_str, evaled)
+            indent_str = "\n" + " " * len(match.group(1))
+            evaled = evaled.replace("\n", indent_str)
     else:
         evaled = evaled.__repr__()
 
