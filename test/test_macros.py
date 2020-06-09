@@ -1,6 +1,7 @@
 import pytest
 import yaml
 from textwrap import dedent
+import unittest.mock as mock
 
 from yaml_macros.macros import yaml_macros
 
@@ -39,6 +40,15 @@ def test_eval_multiple_line_string():
     assert yaml.safe_load(parsed) == {"stuff": [{"type": "module", "url": "foo"}]}
 
 
+def test_import_does_not_exist():
+    with pytest.raises(ModuleNotFoundError):
+        parsed = yaml_macros(
+            (
+                "@@import some_silly_thing_that_does_not_exist@@\n"
+            )
+        )
+
+
 def test_exec_function():
     parsed = yaml_macros(
         (
@@ -51,3 +61,24 @@ def test_exec_function():
         )
     )
     assert yaml.safe_load(parsed) == {"stuff": {"foo": "Hello world!"}}
+
+
+def test_include():
+    with mock.patch('builtins.open', mock.mock_open(read_data="foo: Hello world!")):
+        parsed = yaml_macros(
+            (
+                "stuff:\n"
+                "  @@include include.yaml@@\n"
+            )
+        )
+    assert yaml.safe_load(parsed) == {"stuff": {"foo": "Hello world!"}}
+
+
+def test_include_file_does_not_exist():
+    with pytest.raises(FileNotFoundError):
+        parsed = yaml_macros(
+            (
+                "stuff:\n"
+                "  @@include some_name_that_does_not_exist.oh_gosh@@\n"
+            )
+        )

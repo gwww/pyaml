@@ -1,0 +1,34 @@
+# Block defines function that returns string
+@@
+def resources(arg):
+  return f"- arg: Hello {arg}!\n  url: example.com"
+@@
+resources:
+  @@resources("world")@@
+
+
+# Block define function that return python struct
+@@
+def resources2(arg):
+  return [{"arg": f"Hello {arg}!", "url": "example.com"}]
+@@
+resources2:
+  @@resources2("world")@@
+
+
+# Import and call function
+@@import test@@
+resources3:
+  - @@test.resource("foo", "module")@@
+  - @@test.resource("goo", "js")@@
+
+
+# Nested YAML preserved indents
+@@
+some_var = "arg: foo\nurl: example.com"
+@@
+some_yaml:
+  some_more_yaml:
+    yet_even_more_yaml:
+    - @@some_var@@
+    - @@include foo.yaml@@

@@ -1,33 +1,47 @@
 """
 Entry point for parsing YAML and picking out the Python
-'macros' for expanding
+'macros' for expanding.
 """
 
+import io
 import re
 import yaml
 
 _macro_globals = {}
 
 
-def yaml_macros_file(file, reformat=True):
+def yaml_macros_file(filename, reformat=True):
     """Convert macros in YAML file to pure YAML."""
-    with open(file) as file_handle:
-        lines = [_parse_line(line) for line in file_handle]
-    return _yaml_return(lines, reformat)
+    with open(filename) as io_handle:
+        lines = _process_file(io_handle, reformat)
+    return lines
 
 
 def yaml_macros(yaml_str, reformat=True):
     """Convert macros in YAML string to pure YAML."""
-    lines = [_parse_line(line) for line in yaml_str.splitlines(True)]
-    return _yaml_return(lines, reformat)
+    with io.StringIO(yaml_str) as io_handle:
+        lines = _process_file(io_handle, reformat)
+    return lines
 
 
-def _yaml_return(lines, reformat):
+def _process_file(io_handle, reformat):
+    lines = _read_lines(io_handle)
     if reformat:
-        data = yaml.safe_load("".join(lines))
+        data = yaml.safe_load(lines)
         return yaml.dump(data)
 
-    return "".join(lines)
+    return lines
+
+
+def _read_lines(io_handle, indent_str=""):
+    return "".join([_parse_line(f"{indent_str}{line}") for line in io_handle])
+
+
+_re_exec_block = re.compile(r"^@@\s*$")
+_re_import = re.compile(r"^@@((import|from)\s+.*)@@\s*$")
+_re_comment = re.compile(r"^\s*#")
+_re_include = re.compile(r"^(.*)@@include\s+(\S+)@@\s*$")
+_re_eval = re.compile(r"^(.*)@@(.+)@@(.*)")
 
 
 def _parse_line(line):
@@ -35,36 +49,16 @@ def _parse_line(line):
         return ""
     if _parse_import(line):
         return ""
-    return(_parse_eval(line))
-
-
-def _parse_import(line):
-    match = re.match(r"^@@((import|from)\s+.*)@@\s*$", line)
-    if not match:
-        return False
-
-    exec(match.group(1), _macro_globals)
-    return True
-
-
-def _parse_eval(line):
-    match = re.match(r"^(.*)@@(.+)@@(.*)", line)
-    if not match:
+    if _parse_comment(line):
         return line
-
-    evaled = eval(match.group(2), _macro_globals)
-    if isinstance(evaled, str):
-        if "\n" in evaled:
-            prefix_str = "\n" + " " * len(match.group(1))
-            evaled = re.sub(r"\n", prefix_str, evaled)
-    else:
-        evaled = evaled.__repr__()
-
-    return f"{match.group(1)}{evaled}{match.group(3)}"
+    lines = _parse_include(line)
+    if lines:
+        return lines
+    return _parse_eval(line)
 
 
 def _parse_exec_block(line):
-    match = re.match(r"^@@\s*$", line)
+    match = _re_exec_block.match(line)
     if not _parse_exec_block.parsing:
         if match:
             _parse_exec_block.parsing = True
@@ -79,4 +73,45 @@ def _parse_exec_block(line):
             _parse_exec_block.lines += line
         return True
 
+
 _parse_exec_block.parsing = False
+_parse_exec_block.lines = ""
+
+
+def _parse_import(line):
+    match = _re_import.match(line)
+    if not match:
+        return False
+
+    exec(match.group(1), _macro_globals)
+    return True
+
+
+def _parse_comment(line):
+    return not _re_comment.match(line) is None
+
+
+def _parse_include(line):
+    lines = None
+    match = _re_include.match(line)
+    if match:
+        indent_str = " " * len(match.group(1))
+        filename = match.group(2)
+        with open(filename) as io_handle:
+            lines = _read_lines(io_handle, indent_str)
+    return lines
+
+def _parse_eval(line):
+    match = _re_eval.match(line)
+    if not match:
+        return line
+
+    evaled = eval(match.group(2), _macro_globals)
+    if isinstance(evaled, str):
+        if "\n" in evaled:
+            prefix_str = "\n" + " " * len(match.group(1))
+            evaled = re.sub(r"\n", prefix_str, evaled)
+    else:
+        evaled = evaled.__repr__()
+
+    return f"{match.group(1)}{evaled}{match.group(3)}\n"
