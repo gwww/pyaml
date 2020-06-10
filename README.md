@@ -10,6 +10,9 @@ https://github.com/gwww/yaml-macros
 
 ## Description
 
+Docs are light at this point. Take a look a `example/test.yaml` and associated
+files and at `test/test_macros.py`.
+
 ## Installation
 
 ```bash
