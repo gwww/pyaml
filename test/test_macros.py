@@ -8,7 +8,7 @@ from yaml_macros.macros import yaml_macros
 
 def test_eval_dict():
     parsed = yaml_macros(
-        ("@@from macros import resources@@\n" "resources:\n" "  @@resources()@@\n")
+        ("         @@from macros import resources@@\n" "resources:\n" "  @@resources()@@\n")
     )
     assert parsed == ("resources:\n" "- type: module\n" "  url: foo\n")
     assert yaml.safe_load(parsed) == {"resources": [{"type": "module", "url": "foo"}]}
@@ -42,8 +42,19 @@ def test_eval_multiple_line_string():
 
 def test_import_does_not_exist():
     with pytest.raises(ModuleNotFoundError):
-        parsed = yaml_macros(("@@import some_silly_thing_that_does_not_exist@@\n"))
+        parsed = yaml_macros(("@@import some_thing_that_does_not_exist@@\n"))
 
+
+def test_exec_empty_block():
+    parsed = yaml_macros(
+        (
+            "@@\n"
+            "@@\n"
+            "stuff:\n"
+            "  cow: goes_moo\n"
+        )
+    )
+    assert yaml.safe_load(parsed) == {"stuff": {"cow": "goes_moo"}}
 
 def test_exec_function():
     parsed = yaml_macros(

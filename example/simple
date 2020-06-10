@@ -6,11 +6,16 @@ from yaml_macros import yaml_macros_file
 
 
 def main():
+    reformat = False
     if len(sys.argv) < 2:
         print(f"Usage: {sys.argv[0]} <YAML file>")
         exit(1)
 
-    print(yaml_macros_file(sys.argv[1]))
+    if sys.argv[1] == "-r":
+        reformat = True
+        sys.argv.pop(1)
+
+    print(yaml_macros_file(sys.argv[1], reformat))
 
 
 if __name__ == "__main__":

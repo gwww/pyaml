@@ -37,7 +37,7 @@ def _read_lines(io_handle):
 
 
 _re_exec_block = re.compile(r"^@@\s*$")
-_re_import = re.compile(r"^@@((import|from)\s+.*)@@\s*$")
+_re_import = re.compile(r"^\s*@@((import|from)\s+.*)@@\s*$")
 _re_comment = re.compile(r"^\s*#")
 _re_include = re.compile(r"^(.*)@@include\s+(\S+)@@\s*$")
 _re_eval = re.compile(r"^(.*)@@(.+)@@(.*)")
