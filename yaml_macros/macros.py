@@ -8,10 +8,14 @@ import re
 import textwrap
 import yaml
 
+from enum import Enum
+
+LineType = Enum("LineType", "REGULAR COMMENT EVAL EXEC IMPORT INCLUDE")
+
 
 def yaml_macros_file(filename, reformat=True):
     """Convert macros in YAML file to pure YAML."""
-    with open(filename) as io_handle:
+    with open(filename) as stream:
         return _yaml_macros(stream, reformat)
 
 
@@ -30,8 +34,8 @@ def _yaml_macros(stream, reformat):
 
 
 class YAML_macros:
-    _re_exec_block1 = re.compile(r"^(.*)@@\s*$")
-    _re_exec_block2 = re.compile(r"^\s*@@\s*$")
+    _re_exec_block_start = re.compile(r"^(.*)@@\s*$")
+    _re_exec_block_end = re.compile(r"^\s*@@\s*$")
     _re_import = re.compile(r"^\s*@@((import|from)\s+.*?)(@@)?\s*$")
     _re_comment = re.compile(r"^\s*#")
     _re_include = re.compile(r"^(.*)@@include\s+(\S+?)(@@)?\s*$")
@@ -39,30 +43,28 @@ class YAML_macros:
     _re_eval2 = re.compile(r"^(.*)@@(.+)()")
 
     def __init__(self, stream):
-        self._stream = [stream]
-        self._parsing_block = False
-        self._block_lines = ""
+        self._streams = [stream]
         self._macro_globals = {}
 
     def load(self):
-        self._lines = self._process_stream()
+        self._lines = self._process_stream("")
         return self._lines
 
     def dump(self):
         return yaml.dump(yaml.safe_load(self._lines))
 
-    def _process_stream(self):
+    def _process_stream(self, indent_str):
         lines = []
-        for line in self._stream[-1]:
-            line = self._parse_line(line)
+        for line in self._streams[-1]:
+            line = self._parse_line(f"{indent_str}{line}")
             if not line:
                 continue
             lines.append(line)
-        self._stream.pop()
+        self._streams.pop()
         return "".join(lines)
 
     def _parse_line(self, line):
-        if not self._parsing_block and self._parse_comment(line):
+        if self._parse_comment(line):
             return line
         (parsed, prefix) = self._parse_exec_block(line)
         if parsed:
@@ -79,23 +81,24 @@ class YAML_macros:
         return line
 
     def _parse_exec_block(self, line):
-        if not self._parsing_block:
-            if line.count("@@") == 1:
-                match = self._re_exec_block1.match(line)
-                if match:
-                    self._parsing_block = True
-                    self._block_lines = ""
-                    return (True, match.group(1))
+        if line.count("@@") != 1:
             return (False, None)
-        else:
-            match = self._re_exec_block2.match(line)
+        match = self._re_exec_block_start.match(line)
+        if not match:
+            return (False, None)
+
+        return_text = match.group(1)
+        block_lines = ""
+        for line in self._streams[-1]:
+            match = self._re_exec_block_end.match(line)
             if match:
-                self._parsing_block = False
-                exec(textwrap.dedent(self._block_lines), self._macro_globals)
-                self._block_lines = ""
+                exec(textwrap.dedent(block_lines), self._macro_globals)
+                return (True, return_text)
             else:
-                self._block_lines += line
-            return (True, None)
+                block_lines += line
+
+        # Error: block end not found before end of file
+        return (False, None)
 
     def _parse_import(self, line):
         match = self._re_import.match(line)
@@ -119,10 +122,20 @@ class YAML_macros:
                     match.group(1) + file.read().replace("\n", indent_string) + "\n"
                 )
             with io.StringIO(include_string) as stream:
-                self._stream.append(stream)
-                lines = self._process_stream()
+                self._streams.append(stream)
+                lines = self._process_stream("")
         return lines
 
+    # def _indent_include(self, include_text):
+    #     first_line_processed = False
+    #     in_block = False
+    #     lines = include_text.split("\n")
+    #     for line in lines:
+    #         if in_block:
+    #             if self._re_exec_block_end.match(line):
+    #                 in_block = False
+    #         elif line.count("@@") == 1 and self._re_exec_block_start.match(line):
+    #             in_block = True
 
     def _parse_eval(self, line):
         match = self._re_eval1.match(line) or self._re_eval2.match(line)
