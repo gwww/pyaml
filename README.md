@@ -13,7 +13,17 @@ https://github.com/gwww/yaml-macros
 Docs are light at this point. Take a look a `example/test.yaml` and associated
 files and at `test/test_macros.py`.
 
+This lib is distinguished from other generic templating languages in that
+indentation, crucial in YAML, is preserved on `include`, `eval`, etc.
+
+This uses python's `eval` and `exec` functions. Read about security concerns
+about use of those. Since this software is not accessing unaudited code the risk
+of `eval` and `exec` is viewed as low. Never accept/use python "macros" without
+inspecting the code.
+
 ## Installation
+
+Note: pip version coming soon.
 
 ```bash
     $ pip install yaml_macros

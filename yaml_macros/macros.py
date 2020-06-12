@@ -5,6 +5,7 @@ Entry point for parsing YAML and picking out the Python
 
 import io
 import re
+import textwrap
 import yaml
 
 _macro_globals = {}
@@ -33,48 +34,62 @@ def _process_file(io_handle, reformat):
 
 
 def _read_lines(io_handle):
-    return "".join([_parse_line(line) for line in io_handle])
-
-
-_re_exec_block = re.compile(r"^@@\s*$")
-_re_import = re.compile(r"^\s*@@((import|from)\s+.*)@@\s*$")
-_re_comment = re.compile(r"^\s*#")
-_re_include = re.compile(r"^(.*)@@include\s+(\S+)@@\s*$")
-_re_eval = re.compile(r"^(.*)@@(.+)@@(.*)")
+    lines = []
+    for line in io_handle:
+        line = _parse_line(line)
+        if not line:
+            continue
+        lines.append(line)
+    return "".join(lines)
 
 
 def _parse_line(line):
-    if _parse_exec_block(line):
-        return ""
-    if _parse_import(line):
-        return ""
-    if _parse_comment(line):
+    if not _parse_exec_block.parsing and _parse_comment(line):
         return line
+    (parsed, prefix) = _parse_exec_block(line)
+    if parsed:
+        return prefix
+    if _parse_import(line):
+        return None
     lines = _parse_include(line)
     if lines:
         return lines
-    return _parse_eval(line)
+    eval_line = _parse_eval(line)
+    if eval_line:
+        return eval_line
+
+    return line
+
+
+_re_exec_block1 = re.compile(r"^(.*)@@\s*$")
+_re_exec_block2 = re.compile(r"^\s*@@\s*$")
 
 
 def _parse_exec_block(line):
-    match = _re_exec_block.match(line)
     if not _parse_exec_block.parsing:
-        if match:
-            _parse_exec_block.parsing = True
-            _parse_exec_block.lines = ""
-        return _parse_exec_block.parsing
+        if line.count("@@") == 1:
+            match = _re_exec_block1.match(line)
+            if match:
+                _parse_exec_block.parsing = True
+                _parse_exec_block.lines = ""
+                return (True, match.group(1))
+        return (False, None)
     else:
+        match = _re_exec_block2.match(line)
         if match:
             _parse_exec_block.parsing = False
-            exec(_parse_exec_block.lines, _macro_globals)
+            exec(textwrap.dedent(_parse_exec_block.lines), _macro_globals)
             _parse_exec_block.lines = ""
         else:
             _parse_exec_block.lines += line
-        return True
+        return (True, None)
 
 
 _parse_exec_block.parsing = False
 _parse_exec_block.lines = ""
+
+
+_re_import = re.compile(r"^\s*@@((import|from)\s+.*?)(@@)?\s*$")
 
 
 def _parse_import(line):
@@ -86,33 +101,46 @@ def _parse_import(line):
     return True
 
 
+_re_comment = re.compile(r"^\s*#")
+
+
 def _parse_comment(line):
     return not _re_comment.match(line) is None
+
+
+_re_include = re.compile(r"^(.*)@@include\s+(\S+?)(@@)?\s*$")
 
 
 def _parse_include(line):
     lines = None
     match = _re_include.match(line)
     if match:
-        indent_str = "\n" + " " * len(match.group(1))
+        indent_string = "\n" + " " * len(match.group(1))
         filename = match.group(2)
         with open(filename) as file:
-            include_str = match.group(1) + file.read().replace("\n", indent_str) + "\n"
-        with io.StringIO(include_str) as io_handle:
+            include_string = (
+                match.group(1) + file.read().replace("\n", indent_string) + "\n"
+            )
+        with io.StringIO(include_string) as io_handle:
+            breakpoint()
             lines = _read_lines(io_handle)
     return lines
 
 
+_re_eval1 = re.compile(r"^(.*)@@(.+)@@(.*)")
+_re_eval2 = re.compile(r"^(.*)@@(.+)()")
+
+
 def _parse_eval(line):
-    match = _re_eval.match(line)
+    match = _re_eval1.match(line) or _re_eval2.match(line)
     if not match:
-        return line
+        return None
 
     evaled = eval(match.group(2), _macro_globals)
     if isinstance(evaled, str):
         if "\n" in evaled:
-            indent_str = "\n" + " " * len(match.group(1))
-            evaled = evaled.replace("\n", indent_str)
+            indent_string = "\n" + " " * len(match.group(1))
+            evaled = evaled.replace("\n", indent_string)
     else:
         evaled = evaled.__repr__()
 
