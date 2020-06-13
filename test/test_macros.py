@@ -7,12 +7,7 @@ from yaml_macros.macros import yaml_macros_string
 
 
 def test_simplest_macro():
-    parsed = yaml_macros_string(
-        (
-            "yaml_stuff:\n"
-            "  foo: @@42@@\n"
-        )
-    )
+    parsed = yaml_macros_string(("yaml_stuff:\n" "  foo: @@42@@\n"))
     assert yaml.safe_load(parsed) == {"yaml_stuff": {"foo": 42}}
 
 
@@ -74,7 +69,7 @@ def test_exec_function():
     assert yaml.safe_load(parsed) == {"stuff": {"foo": "Hello world!"}}
 
 
-def test_exec_indented_block_get_dedented():
+def test_exec_indented_block_gets_dedented():
     parsed = yaml_macros_string(
         (
             "@@\n"
@@ -113,7 +108,9 @@ def test_include_that_has_variable():
     with mock.patch(
         "builtins.open", mock.mock_open(read_data="@@\nvar=42\n@@\n@@var@@\n")
     ):
-        parsed = yaml_macros_string(("stuff:\n" "  everything: @@include include.yaml@@\n"))
+        parsed = yaml_macros_string(
+            ("stuff:\n" "  everything: @@include include.yaml@@\n")
+        )
     assert yaml.safe_load(parsed) == {
         "stuff": {"everything": 42},
     }
@@ -164,3 +161,24 @@ def test_exec_include_inline_block():
             )
         )
     assert yaml.safe_load(parsed) == {"stuffy_mc_stuff_face": [42, 42]}
+
+
+def test_exec_include_inline_block_with_eval():
+    with mock.patch(
+        "builtins.open",
+        mock.mock_open(
+            read_data=(
+                "@@\n"
+                "some_variable='jersey cow'\n"
+                "@@\n"
+                "zoo: bar\n"
+                "moo: @@some_variable@@\n"
+            )
+        ),
+    ):
+        parsed = yaml_macros_string(
+            ("some_yaml:\n" "  - @@include included_file_that_is_mocked_out.yaml\n")
+        )
+    assert yaml.safe_load(parsed) == {
+        "some_yaml": [{"zoo": "bar", "moo": "jersey cow"}]
+    }

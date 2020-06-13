@@ -10,7 +10,7 @@ import yaml
 
 from enum import Enum
 
-LineType = Enum("LineType", "REGULAR COMMENT EVAL EXEC IMPORT INCLUDE")
+LineType = Enum("LineType", "REGULAR COMMENT EVAL BLOCK IMPORT INCLUDE")
 
 
 def yaml_macros_file(filename, reformat=True):
@@ -34,6 +34,8 @@ def _yaml_macros(stream, reformat):
 
 
 class YAML_macros:
+    """Support 'macros' in YAML."""
+
     _re_exec_block_start = re.compile(r"^(.*)@@\s*$")
     _re_exec_block_end = re.compile(r"^\s*@@\s*$")
     _re_import = re.compile(r"^\s*@@((import|from)\s+.*?)(@@)?\s*$")
@@ -45,109 +47,123 @@ class YAML_macros:
     def __init__(self, stream):
         self._streams = [stream]
         self._macro_globals = {}
+        self._parsers = [
+            self._parse_comment,
+            self._parse_exec_block,
+            self._parse_import,
+            self._parse_include,
+            self._parse_eval,
+        ]
 
     def load(self):
-        self._lines = self._process_stream("")
+        self._lines = self._process_stream()
         return self._lines
 
     def dump(self):
         return yaml.dump(yaml.safe_load(self._lines))
 
-    def _process_stream(self, indent_str):
-        lines = []
-        for line in self._streams[-1]:
-            line = self._parse_line(f"{indent_str}{line}")
-            if not line:
+    def _process_stream(self, indent_str=""):
+        # print(f"_process_stream indent={len(indent_str)}")
+        tokens = [self._parse_line(line) for line in self._streams[-1]]
+        # for token in tokens:
+        #     print(token)
+        if indent_str:
+            self._indent_tokens(tokens, indent_str)
+        output = [self._process_line(token) for token in tokens]
+        return "".join(output)
+
+    def _process_line(self, token):
+        line_type = token[0]
+        if line_type == LineType.REGULAR:
+            return token[1]
+        if line_type == LineType.COMMENT:
+            return token[2]
+        if line_type == LineType.BLOCK:
+            exec(textwrap.dedent(token[2]), self._macro_globals)
+            return token[1]
+        if line_type == LineType.EVAL:
+            evaled = eval(token[2], self._macro_globals)
+            if isinstance(evaled, str):
+                if "\n" in evaled:
+                    indent_string = "\n" + " " * len(token[1])
+                    evaled = evaled.replace("\n", indent_string)
+            else:
+                evaled = evaled.__repr__()
+            return f"{token[1]}{evaled}{token[3]}\n"
+        if line_type == LineType.IMPORT:
+            exec(token[2], self._macro_globals)
+            return ""
+        if line_type == LineType.INCLUDE:
+            return self._process_include(token)
+
+    def _process_include(self, token):
+        indent_string = " " * len(token[1])
+        filename = token[2]
+        with open(filename) as stream:
+            self._streams.append(stream)
+            lines = self._process_stream(indent_string)
+        return f"{token[1]}{lines}\n"
+
+    def _indent_tokens(self, tokens, indent_str):
+        first_line = True
+        for idx, token in enumerate(tokens):
+            if token[0] in [
+                LineType.COMMENT,
+                LineType.INCLUDE,
+                LineType.COMMENT,
+                LineType.BLOCK,
+            ]:
                 continue
-            lines.append(line)
-        self._streams.pop()
-        return "".join(lines)
+            if first_line:
+                first_line = False
+                continue
+            tokens[idx] = (token[0], indent_str + token[1], token[2], token[3])
 
     def _parse_line(self, line):
-        if self._parse_comment(line):
-            return line
-        (parsed, prefix) = self._parse_exec_block(line)
-        if parsed:
-            return prefix
-        if self._parse_import(line):
-            return None
-        lines = self._parse_include(line)
-        if lines:
-            return lines
-        eval_line = self._parse_eval(line)
-        if eval_line:
-            return eval_line
-
-        return line
+        for parser in self._parsers:
+            parser_return_value = parser(line)
+            if parser_return_value:
+                return parser_return_value
+        return (LineType.REGULAR, line, None, None)
 
     def _parse_exec_block(self, line):
         if line.count("@@") != 1:
-            return (False, None)
+            return None
         match = self._re_exec_block_start.match(line)
         if not match:
-            return (False, None)
+            return None
 
         return_text = match.group(1)
         block_lines = ""
         for line in self._streams[-1]:
             match = self._re_exec_block_end.match(line)
             if match:
-                exec(textwrap.dedent(block_lines), self._macro_globals)
-                return (True, return_text)
+                return (LineType.BLOCK, return_text, block_lines)
             else:
                 block_lines += line
 
         # Error: block end not found before end of file
-        return (False, None)
+        return None
 
     def _parse_import(self, line):
         match = self._re_import.match(line)
         if not match:
-            return False
-
-        exec(match.group(1), self._macro_globals)
-        return True
+            return None
+        return (LineType.IMPORT, None, match.group(1))
 
     def _parse_comment(self, line):
-        return not self._re_comment.match(line) is None
+        if self._re_comment.match(line):
+            return (LineType.COMMENT, None, line)
+        return None
 
     def _parse_include(self, line):
-        lines = None
         match = self._re_include.match(line)
         if match:
-            indent_string = "\n" + " " * len(match.group(1))
-            filename = match.group(2)
-            with open(filename) as file:
-                include_string = (
-                    match.group(1) + file.read().replace("\n", indent_string) + "\n"
-                )
-            with io.StringIO(include_string) as stream:
-                self._streams.append(stream)
-                lines = self._process_stream("")
-        return lines
-
-    # def _indent_include(self, include_text):
-    #     first_line_processed = False
-    #     in_block = False
-    #     lines = include_text.split("\n")
-    #     for line in lines:
-    #         if in_block:
-    #             if self._re_exec_block_end.match(line):
-    #                 in_block = False
-    #         elif line.count("@@") == 1 and self._re_exec_block_start.match(line):
-    #             in_block = True
+            return (LineType.INCLUDE, match.group(1), match.group(2))
+        return None
 
     def _parse_eval(self, line):
         match = self._re_eval1.match(line) or self._re_eval2.match(line)
         if not match:
             return None
-
-        evaled = eval(match.group(2), self._macro_globals)
-        if isinstance(evaled, str):
-            if "\n" in evaled:
-                indent_string = "\n" + " " * len(match.group(1))
-                evaled = evaled.replace("\n", indent_string)
-        else:
-            evaled = evaled.__repr__()
-
-        return f"{match.group(1)}{evaled}{match.group(3)}\n"
+        return (LineType.EVAL, match.group(1), match.group(2), match.group(3))
