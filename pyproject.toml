@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "yaml-macros"
-version = "0.0.1"
+version = "0.1.0"
 description = "Library for adding macro like functionality to YAML."
 homepage = "https://github.com/gwww/yaml-macros"
 authors = ["Glenn Waters <gwwaters+yaml-macros@gmail.com>"]

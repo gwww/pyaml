@@ -8,9 +8,11 @@ import re
 import textwrap
 import yaml
 
+from collections import namedtuple
 from enum import Enum
 
 LineType = Enum("LineType", "REGULAR COMMENT EVAL BLOCK IMPORT INCLUDE")
+Token = namedtuple("Token", "line_type prefix match postfix")
 
 
 def yaml_macros_file(filename, reformat=True):
@@ -60,7 +62,16 @@ class YAML_macros:
         return self._lines
 
     def dump(self):
-        return yaml.dump(yaml.safe_load(self._lines))
+        try:
+            return yaml.dump(yaml.safe_load(self._lines))
+        except yaml.YAMLError as exc:
+            if hasattr(exc, "problem_mark"):
+                mark = exc.problem_mark
+                print(f"YAML parse error, line {mark.line+1}, column {mark.column+1}")
+                lines = self._lines.split("\n")
+                for i in range(max(mark.line - 5, 0), min(mark.line + 5, len(lines))):
+                    print(f"{i+1: 4} {lines[i]}")
+            return ""
 
     def _process_stream(self, indent_str=""):
         # print(f"_process_stream indent={len(indent_str)}")
@@ -75,26 +86,29 @@ class YAML_macros:
     def _process_line(self, token):
         line_type = token[0]
         if line_type == LineType.REGULAR:
-            return token[1]
+            return f"{token[1]}{token[2]}"
         if line_type == LineType.COMMENT:
             return token[2]
         if line_type == LineType.BLOCK:
             exec(textwrap.dedent(token[2]), self._macro_globals)
             return token[1]
         if line_type == LineType.EVAL:
-            evaled = eval(token[2], self._macro_globals)
-            if isinstance(evaled, str):
-                if "\n" in evaled:
-                    indent_string = "\n" + " " * len(token[1])
-                    evaled = evaled.replace("\n", indent_string)
-            else:
-                evaled = evaled.__repr__()
-            return f"{token[1]}{evaled}{token[3]}\n"
+            return self._process_eval(token)
         if line_type == LineType.IMPORT:
             exec(token[2], self._macro_globals)
             return ""
         if line_type == LineType.INCLUDE:
             return self._process_include(token)
+
+    def _process_eval(self, token):
+        evaled = eval(token[2], self._macro_globals)
+        if isinstance(evaled, str):
+            if "\n" in evaled:
+                indent_string = "\n" + " " * len(token[1])
+                evaled = evaled.replace("\n", indent_string)
+        else:
+            evaled = evaled.__repr__()
+        return f"{token[1]}{evaled}{token[3]}\n"
 
     def _process_include(self, token):
         indent_string = " " * len(token[1])
@@ -115,16 +129,17 @@ class YAML_macros:
             ]:
                 continue
             if first_line:
+                # Don't indent the first line
                 first_line = False
                 continue
-            tokens[idx] = (token[0], indent_str + token[1], token[2], token[3])
+            tokens[idx] = Token(token[0], f"{indent_str}{token[1]}", token[2], token[3])
 
     def _parse_line(self, line):
         for parser in self._parsers:
             parser_return_value = parser(line)
             if parser_return_value:
                 return parser_return_value
-        return (LineType.REGULAR, line, None, None)
+        return Token(LineType.REGULAR, "", line, None)
 
     def _parse_exec_block(self, line):
         if line.count("@@") != 1:
@@ -138,7 +153,7 @@ class YAML_macros:
         for line in self._streams[-1]:
             match = self._re_exec_block_end.match(line)
             if match:
-                return (LineType.BLOCK, return_text, block_lines)
+                return Token(LineType.BLOCK, return_text, block_lines, "")
             else:
                 block_lines += line
 
@@ -149,21 +164,21 @@ class YAML_macros:
         match = self._re_import.match(line)
         if not match:
             return None
-        return (LineType.IMPORT, None, match.group(1))
+        return Token(LineType.IMPORT, "", match.group(1), "")
 
     def _parse_comment(self, line):
         if self._re_comment.match(line):
-            return (LineType.COMMENT, None, line)
+            return Token(LineType.COMMENT, "", line, "")
         return None
 
     def _parse_include(self, line):
         match = self._re_include.match(line)
         if match:
-            return (LineType.INCLUDE, match.group(1), match.group(2))
+            return Token(LineType.INCLUDE, match.group(1), match.group(2), "")
         return None
 
     def _parse_eval(self, line):
         match = self._re_eval1.match(line) or self._re_eval2.match(line)
         if not match:
             return None
-        return (LineType.EVAL, match.group(1), match.group(2), match.group(3))
+        return Token(LineType.EVAL, match.group(1), match.group(2), match.group(3))
