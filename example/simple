@@ -15,7 +15,9 @@ def main():
         reformat = True
         sys.argv.pop(1)
 
-    print(yaml_macros_file(sys.argv[1], reformat))
+    (lines, error) = yaml_macros_file(sys.argv[1], reformat)
+    print(lines)
+    exit(-1 if error else 0)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,10 @@
+foo:
+  goo: @@include moo@@
+
 # Block defines function that returns string
 @@
 def resources(arg):
+  print("This is a print from a block function call")
   return f"- arg: Hello {arg}!\n  url: example.com"
 @@
 resources:
@@ -17,10 +21,11 @@ resources2:
 
 
 # Import and call function
-@@import test@@
+@@import some_code.test as test@@
 resources3:
   - @@test.resource("foo", "module")@@
   - @@test.resource("goo", "js")@@
+  - @@test.CONST
 
 
 # Nested YAML preserved indents
@@ -32,3 +37,6 @@ some_yaml:
     yet_even_more_yaml:
     - @@some_var@@
     - @@include foo.yaml@@
+
+some_different_yaml:
+  - @@include foo.yaml@@

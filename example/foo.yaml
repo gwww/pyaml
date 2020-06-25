@@ -1,2 +1,5 @@
+@@
+var = "cow"
+@@
 zoo: bar
-moo: cow
+moo: @@var@@
