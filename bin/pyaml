@@ -1,0 +1,70 @@
+#!/usr/bin/env python
+
+import argparse
+import sys
+import time
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler, PatternMatchingEventHandler
+
+
+def process_yaml(args):
+    (lines, error) = yaml_macros_file(args.file[0], args, check)
+    print("error occured process YAML", file=sys.stderr)
+    return (lines, error)
+
+
+def watch(args):
+    def on_any_event(event):
+        # print(f"event type: {event.event_type}  path : {event.src_path}")
+        process_yaml(args)
+
+    event_handler = PatternMatchingEventHandler(patterns=["./testing/_macros/*.py"])
+    event_handler.on_any_event = on_any_event
+    observer = Observer()
+    observer.schedule(event_handler, path, recursive=True)
+    observer.start()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Process python based 'macros' embedded in YAML."
+    )
+    parser.add_argument(
+        "-w",
+        "--watch",
+        action="append",
+        help="Watch file or directory for changes. Can be repeated.",
+        default=[],
+    )
+    parser.add_argument(
+        "-c",
+        "--check",
+        action="store_true",
+        help="Check if YAML is valid and reformat it.",
+        default=False,
+    )
+    parser.add_argument("-o", "-output", action="store", help="Output file.")
+    parser.add_argument("file", nargs=1, help="YAML file with embedded macros.")
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    if args.watch:
+        watch(args)
+        exit(0)
+
+    (lines, error) = process_yaml(args)
+    print(lines)
+    exit(-1 if error else 0)
+
+
+if __name__ == "__main__":
+    main()
