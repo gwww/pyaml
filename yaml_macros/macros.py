@@ -30,9 +30,9 @@ def yaml_macros_string(yaml_str, reformat=True):
 def _yaml_macros(stream, reformat):
     processor = YAML_macros(stream)
     lines = processor.load()
-    if reformat:
-        return processor.dump()
-    return lines
+    if not processor.last_error and reformat:
+        lines = processor.dump()
+    return (lines, processor.last_error)
 
 
 class YAML_macros:
@@ -49,6 +49,7 @@ class YAML_macros:
     def __init__(self, stream):
         self._streams = [stream]
         self._macro_globals = {}
+        self.last_error = None
         self._parsers = [
             self._parse_comment,
             self._parse_exec_block,
@@ -67,7 +68,8 @@ class YAML_macros:
         except yaml.YAMLError as exc:
             if hasattr(exc, "problem_mark"):
                 mark = exc.problem_mark
-                print(f"YAML parse error, line {mark.line+1}, column {mark.column+1}")
+                self.last_error = f"YAML parse error, line {mark.line+1}, column {mark.column+1}"
+                print(self.last_error)
                 lines = self._lines.split("\n")
                 for i in range(max(mark.line - 5, 0), min(mark.line + 5, len(lines))):
                     print(f"{i+1: 4} {lines[i]}")
@@ -95,7 +97,10 @@ class YAML_macros:
         if line_type == LineType.EVAL:
             return self._process_eval(token)
         if line_type == LineType.IMPORT:
-            exec(token[2], self._macro_globals)
+            try:
+                exec(token[2], self._macro_globals)
+            except ModuleNotFoundError:
+                self.last_error = f"Error: import '{token[2]}' failed, not found."
             return ""
         if line_type == LineType.INCLUDE:
             return self._process_include(token)
@@ -113,10 +118,15 @@ class YAML_macros:
     def _process_include(self, token):
         indent_string = " " * len(token[1])
         filename = token[2]
-        with open(filename) as stream:
-            self._streams.append(stream)
-            lines = self._process_stream(indent_string)
-        return f"{token[1]}{lines}\n"
+        try:
+            with open(filename) as stream:
+                self._streams.append(stream)
+                lines = self._process_stream(indent_string)
+            return f"{token[1]}{lines}\n"
+        except FileNotFoundError as exc:
+            self.last_error = f"Error: include file '{filename}' not found."
+            print(self.last_error)
+            return ""
 
     def _indent_tokens(self, tokens, indent_str):
         first_line = True
