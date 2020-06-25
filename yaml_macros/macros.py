@@ -5,29 +5,32 @@ Entry point for parsing YAML and picking out the Python
 
 import io
 import re
+import sys
 import textwrap
 import yaml
 
 from collections import namedtuple
 from enum import Enum
+from .util import error_msg
 
 LineType = Enum("LineType", "REGULAR COMMENT EVAL BLOCK IMPORT INCLUDE")
 Token = namedtuple("Token", "line_type prefix match postfix")
 
 
-def yaml_macros_file(filename, reformat=True):
+def yaml_macros_file(filename, reformat=True, directory="."):
     """Convert macros in YAML file to pure YAML."""
     with open(filename) as stream:
-        return _yaml_macros(stream, reformat)
+        return _yaml_macros(stream, reformat, directory)
 
 
-def yaml_macros_string(yaml_str, reformat=True):
+def yaml_macros_string(yaml_str, reformat=True, directory="."):
     """Convert macros in YAML string to pure YAML."""
     with io.StringIO(yaml_str) as stream:
-        return _yaml_macros(stream, reformat)
+        return _yaml_macros(stream, reformat, directory)
 
 
-def _yaml_macros(stream, reformat):
+def _yaml_macros(stream, reformat, directory):
+    sys.path.insert(0, directory)
     processor = YAML_macros(stream)
     lines = processor.load()
     if not processor.last_error and reformat:
@@ -68,18 +71,20 @@ class YAML_macros:
         except yaml.YAMLError as exc:
             if hasattr(exc, "problem_mark"):
                 mark = exc.problem_mark
-                self.last_error = f"YAML parse error, line {mark.line+1}, column {mark.column+1}"
-                print(self.last_error)
+                self.last_error = (
+                    f"YAML parse error, line {mark.line+1}, column {mark.column+1}"
+                )
+                error_msg(self.last_error)
                 lines = self._lines.split("\n")
                 for i in range(max(mark.line - 5, 0), min(mark.line + 5, len(lines))):
-                    print(f"{i+1: 4} {lines[i]}")
+                    error_msg(f"{i+1: 4} {lines[i]}")
             return ""
 
     def _process_stream(self, indent_str=""):
-        # print(f"_process_stream indent={len(indent_str)}")
+        # error_msg(f"_process_stream indent={len(indent_str)}")
         tokens = [self._parse_line(line) for line in self._streams[-1]]
         # for token in tokens:
-        #     print(token)
+        #     error_msg(token)
         if indent_str:
             self._indent_tokens(tokens, indent_str)
         output = [self._process_line(token) for token in tokens]
@@ -125,7 +130,7 @@ class YAML_macros:
             return f"{token[1]}{lines}\n"
         except FileNotFoundError as exc:
             self.last_error = f"Error: include file '{filename}' not found."
-            print(self.last_error)
+            error_msg(self.last_error)
             return ""
 
     def _indent_tokens(self, tokens, indent_str):

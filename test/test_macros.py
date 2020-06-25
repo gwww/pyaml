@@ -106,7 +106,9 @@ def test_include_that_has_variable():
 
 def test_include_opening_marker_only():
     with mock.patch("builtins.open", mock.mock_open(read_data="foo: Hello world!")):
-        (parsed, error) = yaml_macros_string(("stuff:\n" "  - @@include include.yaml\n"))
+        (parsed, error) = yaml_macros_string(
+            ("stuff:\n" "  - @@include include.yaml\n")
+        )
     assert yaml.safe_load(parsed) == {"stuff": [{"foo": "Hello world!"}]}
 
 
@@ -132,7 +134,9 @@ def test_eval_opening_marker_only():
 
 
 def test_exec_inline_block():
-    (parsed, error) = yaml_macros_string(("stuff:\n" "  - @@\n" "   x=42\n" "@@\n" "@@x@@\n"))
+    (parsed, error) = yaml_macros_string(
+        ("stuff:\n" "  - @@\n" "   x=42\n" "@@\n" "@@x@@\n")
+    )
     assert yaml.safe_load(parsed) == {"stuff": [42]}
 
 

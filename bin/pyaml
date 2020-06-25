@@ -1,27 +1,50 @@
 #!/usr/bin/env python
 
 import argparse
+import os
 import sys
 import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, PatternMatchingEventHandler
 
+from yaml_macros import yaml_macros_file
+
 
 def process_yaml(args):
-    (lines, error) = yaml_macros_file(args.file[0], args, check)
-    print("error occured process YAML", file=sys.stderr)
+    (lines, error) = yaml_macros_file(args.file[0], args.check)
     return (lines, error)
 
 
-def watch(args):
-    def on_any_event(event):
-        # print(f"event type: {event.event_type}  path : {event.src_path}")
-        process_yaml(args)
+def write_output(args, lines):
+    if args.output:
+        with open(args.output, "w") as stream:
+            print(f"Generating '{args.output}' ({len(lines)} lines)")
+            stream.write(lines)
+    else:
+        sys.stdout.write(lines)
 
-    event_handler = PatternMatchingEventHandler(patterns=["./testing/_macros/*.py"])
+
+def watch(args):
+    class TimeTrack:
+        last_change = 0
+
+    def on_any_event(event):
+        prev_time = TimeTrack.last_change
+        TimeTrack.last_change = time.time()
+        if TimeTrack.last_change - prev_time < .5:
+            # Debounce; a single file change will cause two directory events
+            return
+        if args.output:
+            print(f"Watched object '{event.src_path}' was {event.event_type}, regenerating output")
+        lines, error = process_yaml(args)
+        if not error:
+            write_output(args, lines)
+
+    ignore = [args.output] if args.output else []
+    event_handler = PatternMatchingEventHandler(patterns=args.watch, ignore_patterns=ignore, ignore_directories=False)
     event_handler.on_any_event = on_any_event
     observer = Observer()
-    observer.schedule(event_handler, path, recursive=True)
+    observer.schedule(event_handler, ".", recursive=True)
     observer.start()
     try:
         while True:
@@ -49,7 +72,7 @@ def parse_args():
         help="Check if YAML is valid and reformat it.",
         default=False,
     )
-    parser.add_argument("-o", "-output", action="store", help="Output file.")
+    parser.add_argument("-o", "--output", action="store", help="Output file.")
     parser.add_argument("file", nargs=1, help="YAML file with embedded macros.")
     return parser.parse_args()
 
@@ -58,11 +81,13 @@ def main():
     args = parse_args()
 
     if args.watch:
+        print(f"Watching: {args.watch}")
         watch(args)
         exit(0)
 
     (lines, error) = process_yaml(args)
-    print(lines)
+    if not error:
+        print(lines)
     exit(-1 if error else 0)
 
 
