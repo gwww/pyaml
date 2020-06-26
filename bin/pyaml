@@ -9,16 +9,24 @@ from watchdog.events import FileSystemEventHandler, PatternMatchingEventHandler
 
 from yaml_macros import yaml_macros_file
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 
 def process_yaml(args):
-    (lines, error) = yaml_macros_file(args.file[0], args.check)
-    return (lines, error)
+    try:
+        (lines, error) = yaml_macros_file(args.file[0], args.check)
+        return (lines, error)
+    except Exception as error:
+        logger.exception(error)
+        return ("", error)
 
 
 def write_output(args, lines):
     if args.output:
         with open(args.output, "w") as stream:
-            print(f"Generating '{args.output}' ({len(lines)} lines)")
+            print(f"Writing '{args.output}'")
             stream.write(lines)
     else:
         sys.stdout.write(lines)
@@ -29,11 +37,12 @@ def watch(args):
         last_change = 0
 
     def on_any_event(event):
+        # Debounce; a single file change will cause two directory events
         prev_time = TimeTrack.last_change
         TimeTrack.last_change = time.time()
         if TimeTrack.last_change - prev_time < .5:
-            # Debounce; a single file change will cause two directory events
             return
+
         if args.output:
             print(f"Watched object '{event.src_path}' was {event.event_type}, regenerating output")
         lines, error = process_yaml(args)
