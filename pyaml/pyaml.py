@@ -8,10 +8,10 @@ import logging
 import re
 import sys
 import textwrap
-import yaml
-
 from collections import namedtuple
 from enum import Enum
+
+import yaml
 
 LOG = logging.getLogger(__name__)
 
@@ -54,6 +54,7 @@ class Pyaml:
     def __init__(self, stream):
         self._streams = [stream]
         self._macro_globals = {}
+        self._lines = ""
         self.last_error = None
         self._parsers = [
             self._parse_comment,
@@ -64,10 +65,12 @@ class Pyaml:
         ]
 
     def load(self):
+        """Load YAML with embedded Python code."""
         self._lines = self._process_stream()
         return self._lines
 
     def dump(self):
+        """Dump processed YAML checking that it's properly formmatted YAML."""
         try:
             return yaml.dump(yaml.safe_load(self._lines))
         except yaml.YAMLError as exc:
@@ -110,6 +113,7 @@ class Pyaml:
             return ""
         if line_type == LineType.INCLUDE:
             return self._process_include(token)
+        return ""
 
     def _process_eval(self, token):
         evaled = eval(token[2], self._macro_globals)
@@ -165,8 +169,7 @@ class Pyaml:
             match = self._re_exec_block_end.match(line)
             if match:
                 return Token(LineType.BLOCK, return_text, block_lines, "")
-            else:
-                block_lines += line
+            block_lines += line
 
         # Error: block end not found before end of file
         return None

@@ -1,2 +1,2 @@
 """YAML Macros library"""
-from .pyaml import pyaml_string, pyaml_file
+from .pyaml import pyaml_file, pyaml_string

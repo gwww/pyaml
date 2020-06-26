@@ -24,7 +24,7 @@ isort:
 	sh -c "isort --skip-glob=.tox --recursive . "
 
 lint:
-	pylint --msg-template='{msg_id}({symbol}):{line:3d},{column}: {obj}: {msg}' yaml_macros
+	pylint --msg-template='{msg_id}({symbol}):{line:3d},{column}: {obj}: {msg}' pyaml
 
 test:
 	pytest

@@ -1,8 +1,8 @@
-# YAML Macros
+# Python YAML
 
-Library for adding macro like functionality to YAML
+Library for adding Python code in YAML processing
 
-https://github.com/gwww/yaml-macros
+https://github.com/gwww/pyaml
 
 ## Requirements
 
@@ -23,10 +23,10 @@ inspecting the code.
 
 ## Installation
 
-Note: pip version coming soon.
+Note: PyPi version coming soon.
 
 ```bash
-    $ pip install yaml_macros
+    $ pip install pyaml
 ```
 
 ## Overview
@@ -38,8 +38,8 @@ This project uses [poetry](https://poetry.eustace.io/) for development dependenc
 To get started developing:
 
 ```
-git clone https://github.com/gwww/yaml-macros.git
-cd yaml-macros
+git clone https://github.com/gwww/pyaml.git
+cd pyaml
 poetry install
 poetry shell # Or activate the created virtual environment
 make test # to ensure everything installed properly
