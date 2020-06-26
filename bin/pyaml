@@ -7,7 +7,7 @@ import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, PatternMatchingEventHandler
 
-from yaml_macros import yaml_macros_file
+from pyaml import pyaml_file
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def process_yaml(args):
     try:
-        (lines, error) = yaml_macros_file(args.file[0], args.check)
+        (lines, error) = pyaml_file(args.file[0], args.check)
         return (lines, error)
     except Exception as error:
         logger.exception(error)

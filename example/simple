@@ -2,7 +2,7 @@
 
 import sys
 
-from yaml_macros import yaml_macros_file
+from pyaml import pyaml_file
 
 
 def main():
@@ -15,7 +15,7 @@ def main():
         reformat = True
         sys.argv.pop(1)
 
-    (lines, error) = yaml_macros_file(sys.argv[1], reformat)
+    (lines, error) = pyaml_file(sys.argv[1], reformat)
     print(lines)
     exit(-1 if error else 0)
 
