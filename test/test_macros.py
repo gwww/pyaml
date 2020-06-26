@@ -3,7 +3,7 @@ import yaml
 from textwrap import dedent
 import unittest.mock as mock
 
-from yaml_macros.macros import yaml_macros_string
+from pyaml.macros import yaml_macros_string
 
 
 def test_simplest_macro():
