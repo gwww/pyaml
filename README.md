@@ -4,20 +4,24 @@ Library for adding Python code in YAML processing
 
 https://github.com/gwww/pyaml
 
+*Experimental* - This library exists to try out ideas that enhance
+and make simpler the management and creation of YAML files. In particular,
+large YAML files, often seen when using Home Assistant Lovelace front-end.
+
 ## Requirements
 
 - Python 3.6 (or higher)
 
 ## Description
 
-Docs are light at this point. Take a look a `example/test.yaml` and associated
-files and at `test/test_pyaml.py`.
+Usage documentation is below. More examples beyond what is here is in the
+`example` directory or in the unit tests in `test/test_pyaml.py`.
 
 This lib is distinguished from other templating languages in that
 indentation, crucial in YAML, is preserved on `include`, `eval`, and `exec`
 
-This uses python's `eval` and `exec` functions. Read about security concerns
-about use of those. Since this software is not accessing "unaudited" code the
+This uses python's `eval` and `exec` functions. Google about security concerns
+around the use of those. Since this software is not accessing "unaudited" code the
 security risk of using `eval` and `exec` is viewed as low. Never accept/use
 Python code without inspecting the code.
 
@@ -154,6 +158,20 @@ big_pets:
   - zoo: tiger
   - moo: cow
 ```
+
+## Running
+
+There are two programs available to try out the library. In the
+`example` directory there is a Python script called `simple`. This takes
+a file name as a single parameter and writes the converted output to
+standard out. The input file is a YAML file. While in the `example`
+directory you could, for instance, type `./simple example1.yaml`
+to see the output of the first example in this README.
+
+The second program is called `pyaml` is in the bin directory.
+It's a bit more featured. It can watch a list of files/directories for
+changes and run whenever a change occurs. Run it with `--help` for
+additional details.
 
 ## Development
 
