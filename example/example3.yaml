@@ -1,0 +1,2 @@
+big_pets:
+  @@include example3_include.yaml@@

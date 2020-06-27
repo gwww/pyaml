@@ -1,0 +1,16 @@
+@+
+    def markdown_card(label):
+        return \
+    f"""type: markdown
+    style: |
+      ha-card {{background: purple}}
+    content: |
+      ## {label}"""
++@
+
+title: My awesome Lovelace config
+views:
+  - title: Home
+    cards:
+      - @%markdown_card("Kitchen")%@
+      - @%markdown_card("Living room")%@

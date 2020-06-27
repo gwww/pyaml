@@ -27,7 +27,8 @@ def process_yaml(args):
 def write_output(args, lines):
     if args.output:
         with open(args.output, "w") as stream:
-            print(f"Writing '{args.output}'")
+            line_count = lines.count("\n")
+            print(f"Writing {line_count} lines to '{args.output}'")
             stream.write(lines)
     else:
         sys.stdout.write(lines)

@@ -1,0 +1,5 @@
+@+ from resources import resources +@
+
+resources:
+  - @% resources("layout-card", "module") %@
+  - @% resources("card-mod", "module") %@
