@@ -23,8 +23,6 @@ Python code without inspecting the code.
 
 ## Installation
 
-Note: PyPi version coming soon.
-
 ```bash
     $ pip install pyaml
 ```
