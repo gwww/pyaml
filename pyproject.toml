@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "pyaml"
+name = "pyaml-processor"
 version = "0.3.0"
-description = "Library for adding macro like functionality to YAML."
+description = "Library for embedding Python code in YAML."
 homepage = "https://github.com/gwww/pyaml"
 authors = ["Glenn Waters <gwwaters+pyaml@gmail.com>"]
 readme = "README.md"

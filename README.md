@@ -24,7 +24,7 @@ Python code without inspecting the code.
 ## Installation
 
 ```bash
-    $ pip install pyaml
+    $ pip install pyaml-processor
 ```
 
 ## Overview
