@@ -9,7 +9,7 @@ import time
 from watchdog.events import FileSystemEventHandler, PatternMatchingEventHandler
 from watchdog.observers import Observer
 
-from pyaml import pyaml_file
+from pyaml_processor import pyaml_file
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

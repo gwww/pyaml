@@ -2,7 +2,7 @@
 
 import sys
 
-from pyaml import pyaml_file
+from pyaml_processor import pyaml_file
 
 
 def main():
