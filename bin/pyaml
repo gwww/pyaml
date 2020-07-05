@@ -6,9 +6,6 @@ import os
 import sys
 import time
 
-from watchdog.events import FileSystemEventHandler, PatternMatchingEventHandler
-from watchdog.observers import Observer
-
 from pyaml_processor import pyaml_file
 
 logging.basicConfig(level=logging.DEBUG)
@@ -34,47 +31,9 @@ def write_output(args, lines):
         sys.stdout.write(lines)
 
 
-def watch(args):
-    class TimeTrack:
-        last_change = 0
-
-    def on_any_event(event):
-        # Debounce; a single file change will cause two directory events
-        prev_time = TimeTrack.last_change
-        TimeTrack.last_change = time.time()
-        if TimeTrack.last_change - prev_time < .5:
-            return
-
-        if args.output:
-            print(f"Watched object '{event.src_path}' was {event.event_type}, regenerating output")
-        lines, error = process_yaml(args)
-        if not error:
-            write_output(args, lines)
-
-    ignore = [args.output] if args.output else []
-    event_handler = PatternMatchingEventHandler(patterns=args.watch, ignore_patterns=ignore, ignore_directories=False)
-    event_handler.on_any_event = on_any_event
-    observer = Observer()
-    observer.schedule(event_handler, ".", recursive=True)
-    observer.start()
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
-
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Process python based 'macros' embedded in YAML."
-    )
-    parser.add_argument(
-        "-w",
-        "--watch",
-        action="append",
-        help="Watch file or directory for changes. Can be repeated.",
-        default=[],
     )
     parser.add_argument(
         "-c",
@@ -91,14 +50,9 @@ def parse_args():
 def main():
     args = parse_args()
 
-    if args.watch:
-        print(f"Watching: {args.watch}")
-        watch(args)
-        exit(0)
-
     (lines, error) = process_yaml(args)
     if not error:
-        print(lines)
+        write_output(args, lines)
     exit(-1 if error else 0)
 
 

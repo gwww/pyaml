@@ -169,9 +169,7 @@ directory you could, for instance, type `./simple example1.yaml`
 to see the output of the first example in this README.
 
 The second program is called `pyaml` is in the bin directory.
-It's a bit more featured. It can watch a list of files/directories for
-changes and run whenever a change occurs. Run it with `--help` for
-additional details.
+It's a slightly more featured. Run it with `--help` for additional details.
 
 ## Development
 

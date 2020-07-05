@@ -152,7 +152,7 @@ class Pyaml:
             #     LOG.error(token)
             if indent_str:
                 self._indent_tokens(tokens, indent_str)
-            output = [self._process_line(token).rstrip(" \t") for token in tokens]
+            output = [self._process_line(token) for token in tokens]
             return "".join(output)
         except Exception as exc:
             LOG.exception(exc)
