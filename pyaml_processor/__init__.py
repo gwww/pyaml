@@ -103,12 +103,12 @@ class Pyaml:
     )
     _re_include = re.compile(
         r"""
-            (.*)        # Capture all text before include tag
-            @@include   # Match the include start
-            \s+         # Match at least one space between include and filename
-            (\S+?)      # Capture filename; non-greedy; no spaces allowed in fname
-            @@          # Match the include end tag
-            \s*$        # Any extra spaces after close tag
+            (.*)           # Capture all text before include tag
+            @@\s?include   # Match the include start
+            \s+            # Match at least one space between include and filename
+            (\S+?)         # Capture filename; no spaces allowed in fname
+            @@             # Match the include end tag
+            \s*$           # Any extra spaces after close tag
         """,
         re.VERBOSE,
     )
