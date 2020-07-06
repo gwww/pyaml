@@ -39,6 +39,7 @@ def _pyaml(stream, reformat, directory):
     sys.path.insert(0, directory)
     processor = Pyaml(stream)
     lines = processor.load()
+    lines = re.sub("\n\s+\n", "\n", lines)
     if not processor.last_error and reformat:
         lines = processor.dump()
     return (lines, processor.last_error)
