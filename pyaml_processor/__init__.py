@@ -161,10 +161,8 @@ class Pyaml:
 
     def _process_line(self, token):
         line_type = token[0]
-        if line_type == LineType.REGULAR:
+        if line_type in [LineType.REGULAR, LineType.COMMENT]:
             return f"{token[1]}{token[2]}"
-        if line_type == LineType.COMMENT:
-            return token[2]
         if line_type == LineType.EXEC:
             exec(textwrap.dedent(token[2]), self._macro_globals)
             return token[1]
@@ -195,11 +193,7 @@ class Pyaml:
     def _indent_tokens(self, tokens, indent_str):
         first_line = True
         for idx, token in enumerate(tokens):
-            if token[0] in [
-                LineType.COMMENT,
-                LineType.INCLUDE,
-                LineType.EXEC,
-            ]:
+            if token[0] in [LineType.INCLUDE, LineType.EXEC]:
                 continue
             if first_line:
                 # Don't indent the first line

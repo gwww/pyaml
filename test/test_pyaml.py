@@ -4,7 +4,7 @@ from textwrap import dedent
 import pytest
 import yaml
 
-from pyaml import pyaml_string
+from pyaml_processor import pyaml_string
 
 
 def test_simple_one_line_eval():
