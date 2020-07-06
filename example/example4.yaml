@@ -1,0 +1,4 @@
+@+ from example4 import example4 +@
+
+resources:
+  - @% example4() %@

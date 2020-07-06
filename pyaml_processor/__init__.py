@@ -12,10 +12,13 @@ import logging
 import re
 import sys
 import textwrap
+import yaml
+
 from collections import namedtuple
 from enum import Enum
 
-import yaml
+from .capture import Capturing
+
 
 LOG = logging.getLogger(__name__)
 
@@ -174,13 +177,19 @@ class Pyaml:
         return ""
 
     def _process_eval(self, token):
-        evaled = eval(token[2], self._macro_globals)
-        if isinstance(evaled, str):
-            if "\n" in evaled:
-                indent_string = "\n" + " " * len(token[1])
-                evaled = evaled.replace("\n", indent_string)
-        else:
+        with Capturing() as output:
+            evaled = eval(token[2], self._macro_globals)
+
+        if not isinstance(evaled, str):
             evaled = evaled.__repr__()
+
+        if output:
+            evaled = f"{output._stringio.getvalue()}{evaled}"
+
+        if "\n" in evaled:
+            indent_string = "\n" + " " * len(token[1])
+            evaled = evaled.replace("\n", indent_string)
+
         return f"{token[1]}{evaled}{token[3]}\n"
 
     def _process_include(self, token):
