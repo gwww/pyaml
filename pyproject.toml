@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyaml-processor"
-version = "0.3.0"
+version = "0.4.0"
 description = "Library for embedding Python code in YAML."
 homepage = "https://github.com/gwww/pyaml"
 authors = ["Glenn Waters <gwwaters+pyaml@gmail.com>"]
@@ -10,7 +10,6 @@ classifiers = [
   'Development Status :: 4 - Beta',
   'Intended Audience :: Developers',
 ]
-include = ["CHANGELOG.md", "bin/**/*"]
 exclude = ["test"]
 
 [tool.poetry.dependencies]
@@ -22,10 +21,12 @@ pytest = "^5.4"
 mock = "^4.0"
 pytest-mock = "^3.1"
 colorlog = "^4.0"
-watchdog = "^0.10"
 black = "^19.10b0"
 pylint = "^2.5.3"
 
 [build-system]
 requires = ["poetry>=1.0"]
 build-backend = "poetry.masonry.api"
+
+[tool.poetry.scripts]
+pyaml = "pyaml_processor.__main__:main"

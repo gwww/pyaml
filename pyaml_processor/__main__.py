@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import argparse
 import logging
 import os
@@ -33,7 +31,7 @@ def write_output(args, lines):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Process python based 'macros' embedded in YAML."
+        description="Process python embedded in YAML."
     )
     parser.add_argument(
         "-c",
@@ -43,7 +41,7 @@ def parse_args():
         default=False,
     )
     parser.add_argument("-o", "--output", action="store", help="Output file.")
-    parser.add_argument("file", nargs=1, help="YAML file with embedded macros.")
+    parser.add_argument("file", nargs=1, help="YAML file with embedded Python.")
     return parser.parse_args()
 
 
@@ -57,4 +55,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
