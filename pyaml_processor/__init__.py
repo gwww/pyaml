@@ -180,6 +180,8 @@ class Pyaml:
         with Capturing() as output:
             evaled = eval(token[2], self._macro_globals)
 
+        evaled = "" if evaled == None
+
         if not isinstance(evaled, str):
             evaled = evaled.__repr__()
 
