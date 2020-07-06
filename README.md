@@ -45,6 +45,10 @@ function for processing. Whatever is returned from the `eval` is inserted into
 the YAML stream. The starting character position of the opening tag is used as
 the indent level prepended to everything returned.
 
+Anything printed to the standard output (`stdout`) is captured and put into
+the YAML stream. The return value from the `eval` is appended to the captured
+output. See `examples/example4.yaml` for an example of print.
+
 For the examples in this section assume that the following Python code
 is in the module `resources.py` and that file contains the following:
 ```
