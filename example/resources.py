@@ -2,6 +2,7 @@ from random import randrange
 
 _PATH = "/local/cards/"
 
+
 def resources(module, module_type):
     version = f"?v={randrange(1000000)}"
     # This works to, the lib can handle lists, dicts, etc as return values:

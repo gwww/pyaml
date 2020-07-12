@@ -1,7 +1,8 @@
 from io import StringIO
 import sys
 
-class Capturing(list):
+
+class CaptureOutput(list):
     """Capture stdout and return array."""
 
     def __enter__(self):

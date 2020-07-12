@@ -113,7 +113,7 @@ def test_exec_indented_block_gets_dedented():
 
 
 def test_include():
-    with mock.patch("builtins.open", mock.mock_open(read_data="foo: Hello world!")):
+    with mock.patch("builtins.open", mock.mock_open(read_data="foo: Hello world!\n")):
         (parsed, error) = pyaml_string(
             (
                 "stuff:\n"

@@ -30,9 +30,7 @@ def write_output(args, lines):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Process python embedded in YAML."
-    )
+    parser = argparse.ArgumentParser(description="Process python embedded in YAML.")
     parser.add_argument(
         "-c",
         "--check",
