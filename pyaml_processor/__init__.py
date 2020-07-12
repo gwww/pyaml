@@ -40,8 +40,8 @@ def pyaml_string(yaml_str, reformat=True, directory="."):
 
 def _pyaml(stream, reformat, directory):
     sys.path.insert(0, directory)
-    processor = Pyaml(stream)
-    lines = processor.load()
+    processor = Pyaml()
+    lines = processor.load(stream)
     lines = re.sub(r"\n\s+\n", "\n", lines)
     if not processor.last_error and reformat:
         lines = processor.dump()
@@ -118,8 +118,8 @@ class Pyaml:
     )
     _re_comment = re.compile(r"\s*#")
 
-    def __init__(self, stream):
-        self._streams = [stream]
+    def __init__(self):
+        self._streams = []
         self._macro_globals = {}
         self._lines = ""
         self.last_error = None
@@ -130,9 +130,9 @@ class Pyaml:
             self._parse_eval,
         ]
 
-    def load(self):
+    def load(self, stream):
         """Load YAML with embedded Python code."""
-        self._lines = self._process()
+        self._lines = self._process(stream)
         return self._lines
 
     def dump(self):
@@ -149,9 +149,9 @@ class Pyaml:
                     LOG.error(f"{i+1: 4} {lines[i]}")
             return ""
 
-    def _process(self, indent_str=""):
+    def _process(self, stream):
         try:
-            tokens = self._parse_stream()
+            tokens = self._parse_stream(stream)
             # for token in tokens:
             #     LOG.error(token)
             output = self._process_tokens(tokens)
@@ -161,14 +161,16 @@ class Pyaml:
             self.last_error = exc
             return ""
 
-    def _parse_stream(self):
+    def _parse_stream(self, stream):
         tokens = []
+        self._streams.append(stream)
         for line in self._streams[-1]:
             result = self._parse_line(line)
             if isinstance(result, list):
                 tokens.extend(result)
             else:
                 tokens.append(result)
+        self._streams.pop()
         return tokens
 
     def _process_tokens(self, tokens):
@@ -224,9 +226,7 @@ class Pyaml:
             indent_string = " " * len(prefix)
             filename = match.group(2)
             with open(filename) as stream:
-                self._streams.append(stream)
-                tokens = self._parse_stream()
-                self._streams.pop()
+                tokens = self._parse_stream(stream)
                 self._indent_tokens(tokens, prefix, indent_string)
                 return tokens
             return []
