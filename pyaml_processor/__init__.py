@@ -174,10 +174,10 @@ class Pyaml:
         return tokens
 
     def _process_tokens(self, tokens):
-        output = [self._process_line(token) for token in tokens]
+        output = [self._process_token(token) for token in tokens]
         return output
 
-    def _process_line(self, token):
+    def _process_token(self, token):
         line_type = token[0]
         if line_type in [LineType.REGULAR, LineType.COMMENT]:
             return f"{token[1]}{token[2]}"
@@ -201,9 +201,8 @@ class Pyaml:
         if output:
             evaled = f"{output._stringio.getvalue()}{evaled}"
 
-        if "\n" in evaled:
-            indent_string = "\n" + " " * len(token[1])
-            evaled = evaled.replace("\n", indent_string)
+        indent_string = "\n" + " " * len(token[1])
+        evaled = evaled.replace("\n", indent_string)
 
         return f"{token[1]}{evaled}{token[3]}\n"
 
@@ -233,18 +232,11 @@ class Pyaml:
         return None
 
     def _indent_tokens(self, tokens, prefix, indent_string):
-        first_line = True
         for idx, token in enumerate(tokens):
             if token[0] == LineType.EXEC:
                 continue
-            if first_line:
-                # Don't indent the first line (prefix takes care of indent)
-                first_line = False
-                tokens[idx] = Token(token[0], f"{prefix}{token[1]}", token[2], token[3])
-            else:
-                tokens[idx] = Token(
-                    token[0], f"{indent_string}{token[1]}", token[2], token[3]
-                )
+            tokens[idx] = Token(token[0], f"{prefix}{token[1]}", token[2], token[3])
+            prefix = indent_string
 
     def _grab_block(self, opening_match, closing_re, capture_type):
         return_text = opening_match.group(1)
